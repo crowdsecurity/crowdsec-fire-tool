@@ -1,4 +1,4 @@
-module github.com/crowdsecurity/crowdsec_fire_tool
+module github.com/crowdsecurity/crowdsec-fire-tool
 
 go 1.19
 
