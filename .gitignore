@@ -11,6 +11,6 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 fire.txt
-crowdsec_fire_tool
+crowdsec-fire-tool
 # Dependency directories (remove the comment below to include it)
 # vendor/

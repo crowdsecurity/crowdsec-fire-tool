@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"path"
 
@@ -22,7 +23,8 @@ func main() {
 		outputDir = "./"
 	}
 
-	file, err := os.Create(path.Join(outputDir, "fire.txt"))
+	filePath := path.Join(outputDir, "fire.txt")
+	file, err := os.Create(filePath)
 	if err != nil {
 		panic(err)
 	}
@@ -31,7 +33,10 @@ func main() {
 	for {
 		items, err := paginator.Next()
 		if err != nil {
-			panic(err)
+			if err == cticlient.ErrUnauthorized {
+				os.Remove(filePath)
+			}
+			log.Fatalf("Error whilst fetching CTI data got %s", err.Error())
 		}
 		if items == nil {
 			break
