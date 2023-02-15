@@ -496,12 +496,9 @@ enroll_instance_to_app() {
 	read -r token
 
 	echo "${FG_CYAN}Enrolling to https://app.crowdsec.net...${RESET}"
-	cscli console enroll $token 2>&1 > /dev/null
+	cscli console enroll $token
 
-	if [ $? -ne 0 ]; then
-		echo "${ERROR}Enrollment failed.${RESET}"
-		return
-	fi
+	echo "${FG_GREEN}Please accept the enrollment on https://app.crowdsec.net${RESET}"
 }
 
 # ------------------------------------------------------------------------------
