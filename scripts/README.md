@@ -30,6 +30,7 @@ The configure option **MUST** run after the install command has completed succes
 
 type | description
 -----|------------
+syslog | Syslog logs
 apache2 | Apache2 logs
 asterisk | Asterisk logs
 caddy | Caddy logs
