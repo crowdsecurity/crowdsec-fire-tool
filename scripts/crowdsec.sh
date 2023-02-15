@@ -482,6 +482,25 @@ generate_file_configuration() {
     done
 }
 
+enroll_instance_to_app() {
+	printf '%s' "Do you want to enroll to https://app.crowdsec.net? [${FG_GREEN}Y${RESET}/n] "
+	read -r answer
+
+	case $answer in
+		n* | N*)
+			return
+			;;
+	esac
+
+	#Ask user for their enrollment token
+	printf '%s' "Enter your enrollment token: "
+	read -r token
+
+	#Enroll to the API
+	echo "${FG_CYAN}Enrolling to https://app.crowdsec.net...${RESET}"
+	cscli console enroll $token
+}
+
 # ------------------------------------------------------------------------------
 # Run
 # ------------------------------------------------------------------------------
@@ -551,6 +570,7 @@ case $action in
         configure_database
         generate_cron_job
         generate_file_configuration
+		enroll_instance_to_app
         ;;
     run)
         case $1 in
