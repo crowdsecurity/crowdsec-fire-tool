@@ -492,13 +492,16 @@ enroll_instance_to_app() {
 			;;
 	esac
 
-	#Ask user for their enrollment token
 	printf '%s' "Enter your enrollment token: "
 	read -r token
 
-	#Enroll to the API
 	echo "${FG_CYAN}Enrolling to https://app.crowdsec.net...${RESET}"
 	cscli console enroll $token 2>&1 > /dev/null
+
+	if [ $? -ne 0 ]; then
+		echo "${ERROR}Enrollment failed.${RESET}"
+		return
+	fi
 }
 
 # ------------------------------------------------------------------------------
