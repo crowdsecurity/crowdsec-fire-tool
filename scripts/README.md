@@ -14,7 +14,7 @@ sudo ./crowdsec.sh install
 
 Install will prompt you serveral questions about your enterprise processes:
 
-Do you allow third party repositories? if Yes then the script will download and configure our repository located on [packagecloud](https://packagecloud.io/crowdsec/crowdsec)
+Do you want to install CrowdSec from the official repository (packagecloud.io)? if Yes then the script will download and configure our repository located on [packagecloud](https://packagecloud.io/crowdsec/crowdsec)
 If no then script will ask if you wish to install via the tarball located on our latest release.
 If both are answered no then the script will fail.
 
