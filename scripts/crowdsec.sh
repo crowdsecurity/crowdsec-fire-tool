@@ -412,25 +412,23 @@ generate_cron_job() {
     if [ ! -s "$cron_file" ]; then
         echo "${FG_CYAN}Generating $cron_file...${RESET}"
 		cat <<-EOT > "$cron_file"
-	0 */2 * * * root CTI_API_KEY=\$(cat /etc/crowdsec/cti-key) $TMPDIR/crowdsec-fire-tool > /var/lib/crowdsec/data/fire.txt
+		0 */2 * * * root CTI_API_KEY=\$(cat /etc/crowdsec/cti-key) $TMPDIR/crowdsec-fire-tool > /var/lib/crowdsec/data/fire.txt
 
-	EOT
-    else
-        echo "${FG_GREEN}$cron_file already exists.${RESET}"
-        echo "You can update it manually from $cron_file"
+		EOT
 	fi
+	if [ ! -f /etc/cron.d/crowdsec-fire-tool ]; then
+		printf '%s' "Do you want to install the cron job? [${FG_GREEN}Y${RESET}/n] "
+		read -r answer
 
-    printf '%s' "Do you want to install the cron job? [${FG_GREEN}Y${RESET}/n] "
-    read -r answer
+		case $answer in
+			n* | N*)
+				return
+				;;
+		esac
 
-    case $answer in
-        n* | N*)
-            return
-            ;;
-    esac
-
-    echo "${FG_CYAN}Installing $cron_file...${RESET}"
-    install -m 0644 "$cron_file" /etc/cron.d/crowdsec-fire-tool
+		echo "${FG_CYAN}Installing $cron_file...${RESET}"
+		install -m 0644 "$cron_file" /etc/cron.d/crowdsec-fire-tool
+	fi
 }
 
 generate_file_configuration() {
