@@ -411,10 +411,10 @@ generate_cron_job() {
 	cron_file="$TMPDIR/crowdsec-fire-tool.cron"
     if [ ! -s "$cron_file" ]; then
         echo "${FG_CYAN}Generating $cron_file...${RESET}"
-        cat <<-EOT > "$cron_file"
-		0 */2 * * * root CTI_API_KEY=\$(cat /etc/crowdsec/cti-key) $TMPDIR/crowdsec-fire-tool > /var/lib/crowdsec/data/fire.txt
-		
-		EOT
+		cat <<-EOT > "$cron_file"
+	0 */2 * * * root CTI_API_KEY=\$(cat /etc/crowdsec/cti-key) $TMPDIR/crowdsec-fire-tool > /var/lib/crowdsec/data/fire.txt
+
+	EOT
     else
         echo "${FG_GREEN}$cron_file already exists.${RESET}"
         echo "You can update it manually from $cron_file"
