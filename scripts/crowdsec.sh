@@ -498,7 +498,7 @@ enroll_instance_to_app() {
 
 	#Enroll to the API
 	echo "${FG_CYAN}Enrolling to https://app.crowdsec.net...${RESET}"
-	cscli console enroll $token
+	cscli console enroll $token 2>&1 > /dev/null
 }
 
 # ------------------------------------------------------------------------------
