@@ -408,17 +408,17 @@ configure_scenario() {
 }
 
 generate_cron_job() {
-    cron_file="$THIS_DIR/crowdsec-fire-tool.cron"
-    echo "${FG_CYAN}Generating $cron_file...${RESET}"
-    cat <<-EOT > "$cron_file"
-	0 */2 * * * root CTI_API_KEY=\$(cat /etc/crowdsec/cti-key) $TMPDIR/crowdsec-fire-tool > /var/lib/crowdsec/data/fire.txt
-	EOT
-
-    if [ -s "$cron_file" ]; then
+	cron_file="$TMPDIR/crowdsec-fire-tool.cron"
+    if [ ! -s "$cron_file" ]; then
+        echo "${FG_CYAN}Generating $cron_file...${RESET}"
+        cat <<-EOT > "$cron_file"
+		0 */2 * * * root CTI_API_KEY=\$(cat /etc/crowdsec/cti-key) $TMPDIR/crowdsec-fire-tool > /var/lib/crowdsec/data/fire.txt
+		
+		EOT
+    else
         echo "${FG_GREEN}$cron_file already exists.${RESET}"
         echo "You can update it manually from $cron_file"
-        return
-    fi
+	fi
 
     printf '%s' "Do you want to install the cron job? [${FG_GREEN}Y${RESET}/n] "
     read -r answer
@@ -433,7 +433,82 @@ generate_cron_job() {
     install -m 0644 "$cron_file" /etc/cron.d/crowdsec-fire-tool
 }
 
+generate_file_configuration() {
+    mkdir -p "$ETC_CROWDSEC/acquis.d"
 
+    printf '%s' "Do you want to generate the file configurations? [${FG_GREEN}Y${RESET}/n] "
+    read -r confirm
+    case $confirm in
+        n* | N*)
+            return
+            ;;
+    esac
+    printf '%s' "Enter the path to the directory containing the files: "
+    read -r directory
+    for file in $(find "$directory" -type f); do
+        if [ -f "$file" ]; then
+            if file --mime-type "$file" | grep -q text; then
+                printf '%s' "Do you want to add $file to the configuration? [${FG_GREEN}Y${RESET}/n] "
+                read -r answer
+
+                case $answer in
+                    n* | N*)
+                        continue
+                        ;;
+                esac
+
+                printf '%s' "Enter the type of the file (apache2, nginx, etc.): "
+                read -r answer
+                if [ -z "$answer" ]; then
+                    echo "${ERROR}Type cannot be empty. skipping file.${RESET}"
+                    continue
+                fi
+                fname=${file##*/}
+                if [ -f "$ETC_CROWDSEC/acquis.d/$fname.yaml" ]; then
+                    echo "${FG_GREEN}$fname already exists.${RESET}"
+                    echo "You can update it manually from $ETC_CROWDSEC/acquis.d/$fname.yaml"
+                    continue
+                fi
+                
+                echo "${FG_CYAN}Adding $fname to the configuration...${RESET}"
+
+                cat <<-EOT > "$ETC_CROWDSEC/acquis.d/$fname.yaml"
+                    filename: $file
+                    labels:
+                      type: $answer
+					EOT
+            fi
+        fi
+    done
+}
+
+# ------------------------------------------------------------------------------
+# Run
+# ------------------------------------------------------------------------------
+
+cold_log_mode() {
+    for file in $(find "$ETC_CROWDSEC/acquis.d" -type f); do
+        printf '%s' "Do you want to process $file? [${FG_GREEN}Y${RESET}/n] "
+        read -r answer
+
+        case $answer in
+            n* | N*)
+                continue
+                ;;
+        esac
+
+        echo "${FG_CYAN}Processing $file...${RESET}"
+        crowdsec -dsn "file://$("$TMPDIR/yq" e '.filename' $file)" -type "$("$TMPDIR/yq" e '.labels.type' $file)" -no-api 2>&1 | grep "performed"
+        continue
+    done
+}
+
+start_crowdsec_service() {
+    if systemctl is-active --quiet crowdsec; then
+        echo "${FG_CYAN}Starting crowdsec...${RESET}"
+        systemctl start crowdsec
+    fi
+}
 # ------------------------------------------------------------------------------
 
 set_colors
@@ -475,8 +550,13 @@ case $action in
         configure_scenario
         configure_database
         generate_cron_job
+        generate_file_configuration
         ;;
     run)
-        run
+        case $1 in
+            coldlog)
+                cold_log_mode
+                ;;
+        esac
         ;;
 esac
