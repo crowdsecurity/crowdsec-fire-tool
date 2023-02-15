@@ -1,6 +1,6 @@
 ## Crowdsec Fire_tool
 
-A simple wrapper around the pkg/cticlient to generate IP's from firedatabase as newline delimeter file.
+A simple wrapper around the pkg/cticlient to generate IP's from firedatabase as newline delimeted file.
 
 #### Go Install
 ```
