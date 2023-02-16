@@ -131,7 +131,9 @@ func main() {
 		log.Fatalf("Error whilst writing output file %s", err)
 	}
 
-	if err = outFile.Sync(); err != nil {
-		log.Fatalf("Error whilst syncing output file %s", err)
+	if outFile != os.Stdout {
+		if err = outFile.Sync(); err != nil {
+			log.Fatalf("Error whilst syncing output file %s", err)
+		}
 	}
 }
