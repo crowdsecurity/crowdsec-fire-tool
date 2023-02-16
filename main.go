@@ -11,6 +11,7 @@ import (
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/posflag"
+	"github.com/schollz/progressbar/v3"
 	flag "github.com/spf13/pflag"
 
 	"github.com/crowdsecurity/crowdsec/pkg/cticlient"
@@ -75,14 +76,18 @@ func main() {
 		Limit: intPtr(1000),
 	})
 
+	bar := progressbar.Default(-1, "Fetching CTI data")
 	for {
 		items, err := paginator.Next()
 		if err != nil {
+			bar.Finish()
 			log.Fatalf("Error whilst fetching CTI data got %s", err.Error())
 		}
 		if items == nil {
 			break
 		}
+
+		bar.Add(len(items))
 
 		for _, item := range items {
 			os.Stdout.WriteString(item.Ip + "\n")
