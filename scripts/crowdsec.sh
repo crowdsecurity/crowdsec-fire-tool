@@ -575,6 +575,13 @@ start_crowdsec_service() {
     fi
 }
 
+restart_crowdsec_service() {
+    if systemctl is-active --quiet crowdsec; then
+        echo "${FG_CYAN}Restarting crowdsec...${RESET}"
+        systemctl restart crowdsec
+    fi
+}
+
 # ------------------------------------------------------------------------------
 
 set_colors
@@ -619,6 +626,7 @@ case $action in
         configure_scenario
         generate_cron_job
         confirm_file_configuration
+        restart_crowdsec_service
         ;;
     run)
         case $1 in
