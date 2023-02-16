@@ -6,7 +6,7 @@ set -eu
 
 #shellcheck disable=SC1007
 THIS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-TMPDIR="$THIS_DIR/tmp"
+THIS_TMP="$THIS_DIR/tmp"
 
 CROWDSEC_GITHUB_RELEASE="github.com/crowdsecurity/crowdsec/releases/download"
 CROWDSEC_VERSION="1.4.6"
@@ -15,9 +15,9 @@ CROWDSEC_DEB_HASH="720fea74c397334e865f314e7b94e813bd67583a4a93416cc73d38405836f
 CROWDSEC_RPM_HASH="df51f6e722c6f2bdfa542f84b636d0106f7e46b19dc0649abbe1b832f69dffa9"
 CROWDSEC_TAR_HASH="e378a6d4ebe54ac95a7d9e1d084fe3eabd8f921ffff3f8b31d867486a84b723d"
 
-FIRETOOL_VERSION="0.2"
+FIRETOOL_VERSION="0.3"
 FIRETOOL_FILE="crowdsec-fire-tool"
-FIRETOOL_HASH="79f801ec105c10c772151ecd5b947beb28b4848cee6f59f09ac2a4593adbad06"
+FIRETOOL_HASH="6c3ca50cacca73dc5db30c44c4aec5b790f593bac08fefc901bb6c2826b7ce41"
 
 YQ_VERSION="4.30.8"
 YQ_FILE="yq_linux_amd64"
@@ -178,11 +178,11 @@ install_crowdsec_from_repo() {
     script_url="https://packagecloud.io/install/repositories/crowdsec/crowdsec/${script_name}"
 
     # remove a previous download
-    rm -f "$TMPDIR/$script_name"
+    rm -f "$THIS_TMP/$script_name"
 
-    echo "${FG_CYAN}Downloading $script_url to ${TMPDIR}${RESET}"
+    echo "${FG_CYAN}Downloading $script_url to ${THIS_TMP}${RESET}"
 
-    download "$script_url" "$TMPDIR"
+    download "$script_url" "$THIS_TMP"
 
     if [ "$distro" = "deb" ]; then
         SCRIPT_HASH="$CROWDSEC_DEB_HASH"
@@ -190,7 +190,7 @@ install_crowdsec_from_repo() {
         SCRIPT_HASH="$CROWDSEC_RPM_HASH"
     fi
 
-    error=$(hash_check "$TMPDIR/$script_name" "$SCRIPT_HASH")
+    error=$(hash_check "$THIS_TMP/$script_name" "$SCRIPT_HASH")
     if [ -n "$error" ]; then
         echo "$error" >&2
         exit 1
@@ -204,7 +204,7 @@ install_crowdsec_from_repo() {
     quit_if_no "$answer"
 
     echo "${FG_CYAN}Installing the repository...${RESET}"
-    bash "$TMPDIR/$script_name"
+    bash "$THIS_TMP/$script_name"
 
     printf '%s' "Install CrowdSec now? [${FG_GREEN}Y${RESET}/n] "
     read -r answer
@@ -222,21 +222,25 @@ install_crowdsec_from_repo() {
 }
 
 download_crowdsec_from_github() {
-    if [ -z "$(hash_check "$TMPDIR/$CROWDSEC_FILE" "$CROWDSEC_TAR_HASH")" ]; then
+    if [ -z "$(hash_check "$THIS_TMP/$CROWDSEC_FILE" "$CROWDSEC_TAR_HASH")" ]; then
         echo "${FG_GREEN}$CROWDSEC_FILE already downloaded.${RESET}"
         return
     fi
 
     # remove a previous download
-    rm -f "$TMPDIR/$CROWDSEC_FILE"
+    rm -f "$THIS_TMP/$CROWDSEC_FILE"
 
     release_url="$CROWDSEC_GITHUB_RELEASE/v$CROWDSEC_VERSION/$CROWDSEC_FILE"
 
-    echo "${FG_CYAN}Downloading $release_url to ${TMPDIR}${RESET}"
+    echo "${FG_CYAN}Downloading $release_url to ${THIS_TMP}${RESET}"
 
-    download "$release_url" "$TMPDIR"
+    download "$release_url" "$THIS_TMP"
 
-    hash_check "$TMPDIR/$CROWDSEC_FILE" "$CROWDSEC_TAR_HASH"
+    error=$(hash_check "$THIS_TMP/$CROWDSEC_FILE" "$CROWDSEC_TAR_HASH")
+    if [ -n "$error" ]; then
+        echo "$error" >&2
+        exit 1
+    fi
     echo "${FG_GREEN}Archive hash verified.${RESET}"
 }
 
@@ -250,18 +254,18 @@ install_crowdsec_from_github() {
 
     download_crowdsec_from_github
 
-    echo "${FG_CYAN}Extracting archive to ${TMPDIR}${RESET}"
+    echo "${FG_CYAN}Extracting archive to ${THIS_TMP}${RESET}"
 
-    rm -rf "$TMPDIR/crowdsec-v$CROWDSEC_VERSION"
+    rm -rf "$THIS_TMP/crowdsec-v$CROWDSEC_VERSION"
 
-    tar -xzf "$TMPDIR/$CROWDSEC_FILE" -C "$TMPDIR"
+    tar -xzf "$THIS_TMP/$CROWDSEC_FILE" -C "$THIS_TMP"
 
     printf '%s' "Install CrowdSec now? [${FG_GREEN}Y${RESET}/n] "
     read -r answer
 
     quit_if_no "$answer"
 
-    cd "$TMPDIR/crowdsec-v$CROWDSEC_VERSION" || (echo "${ERROR}Cannot cd to $TMPDIR/crowdsec-v${CROWDSEC_VERSION}${RESET}" && exit 1)
+    cd "$THIS_TMP/crowdsec-v$CROWDSEC_VERSION" || (echo "${ERROR}Cannot cd to $THIS_TMP/crowdsec-v${CROWDSEC_VERSION}${RESET}" && exit 1)
 
     echo "${FG_CYAN}Running wizard.sh...${RESET}"
 
@@ -270,7 +274,7 @@ install_crowdsec_from_github() {
 
 
 download_fire_tool() {
-    if [ -z "$(hash_check "$TMPDIR/$FIRETOOL_FILE" "$FIRETOOL_HASH")" ]; then
+    if [ -z "$(hash_check "/usr/local/bin/$FIRETOOL_FILE" "$FIRETOOL_HASH")" ]; then
         echo "${FG_GREEN}crowdsec-fire-tool already installed.${RESET}"
         return
     fi
@@ -278,39 +282,15 @@ download_fire_tool() {
     echo "${FG_CYAN}Installing crowdsec-fire-tool.${RESET}"
 
     # remove a previous download
-    rm -f "$TMPDIR/$FIRETOOL_FILE"
+    rm -f "$THIS_TMP/$FIRETOOL_FILE"
 
     release_url="https://github.com/crowdsecurity/crowdsec-fire-tool/releases/download/v$FIRETOOL_VERSION/$FIRETOOL_FILE"
 
-    echo "${FG_CYAN}Downloading $release_url to ${TMPDIR}${RESET}"
+    echo "${FG_CYAN}Downloading $release_url to ${THIS_TMP}${RESET}"
 
-    download "$release_url" "$TMPDIR"
+    download "$release_url" "$THIS_TMP"
 
-    hash_check "$TMPDIR/$FIRETOOL_FILE" "$FIRETOOL_HASH"
-    echo "${FG_GREEN}File hash verified.${RESET}"
-
-    chmod +x "$TMPDIR/$FIRETOOL_FILE"
-}
-
-
-download_yq() {
-    if [ -z "$(hash_check "$TMPDIR/$YQ_FILE" "$YQ_HASH")" ]; then
-        echo "${FG_GREEN}mikefarah/yq already installed.${RESET}"
-        return
-    fi
-
-    echo "${FG_CYAN}Installing mikefarah/yq.${RESET}"
-
-    # remove a previous download
-    rm -f "$TMPDIR/$YQ_FILE"
-
-    release_url="https://github.com/mikefarah/yq/releases/download/v$YQ_VERSION/$YQ_FILE"
-
-    echo "${FG_CYAN}Downloading $release_url to ${TMPDIR}${RESET}"
-
-    download "$release_url" "$TMPDIR"
-
-    error=$(hash_check "$TMPDIR/$YQ_FILE" "$YQ_HASH")
+    error=$(hash_check "$THIS_TMP/$FIRETOOL_FILE" "$FIRETOOL_HASH")
     if [ -n "$error" ]; then
         echo "$error" >&2
         exit 1
@@ -318,8 +298,43 @@ download_yq() {
 
     echo "${FG_GREEN}File hash verified.${RESET}"
 
-    chmod +x "$TMPDIR/$YQ_FILE"
-    ln -sf "$YQ_FILE" "$TMPDIR/yq"
+    echo "${FG_CYAN}Installing crowdsec-fire-tool to /usr/local/bin...${RESET}"
+
+    mv "$THIS_TMP/$FIRETOOL_FILE" /usr/local/bin
+    chown root:root /usr/local/bin/"$FIRETOOL_FILE"
+    chmod 755 /usr/local/bin/"$FIRETOOL_FILE"
+
+    echo "${FG_GREEN}done.${RESET}"
+}
+
+
+download_yq() {
+    if [ -z "$(hash_check "$THIS_TMP/$YQ_FILE" "$YQ_HASH")" ]; then
+        echo "${FG_GREEN}mikefarah/yq already installed.${RESET}"
+        return
+    fi
+
+    echo "${FG_CYAN}Installing mikefarah/yq.${RESET}"
+
+    # remove a previous download
+    rm -f "$THIS_TMP/$YQ_FILE"
+
+    release_url="https://github.com/mikefarah/yq/releases/download/v$YQ_VERSION/$YQ_FILE"
+
+    echo "${FG_CYAN}Downloading $release_url to ${THIS_TMP}${RESET}"
+
+    download "$release_url" "$THIS_TMP"
+
+    error=$(hash_check "$THIS_TMP/$YQ_FILE" "$YQ_HASH")
+    if [ -n "$error" ]; then
+        echo "$error" >&2
+        exit 1
+    fi
+
+    echo "${FG_GREEN}File hash verified.${RESET}"
+
+    chmod +x "$THIS_TMP/$YQ_FILE"
+    ln -sf "$YQ_FILE" "$THIS_TMP/yq"
 }
 
 
@@ -343,15 +358,20 @@ install_crowdsec() {
 # ------------------------------------------------------------------------------
 
 configure_cti_key() {
-    if [ -s "$ETC_CROWDSEC/cti-key" ]; then
-        echo "${FG_GREEN}CTI key already configured.${RESET}"
-        return
+    if [ -s "$ETC_CROWDSEC/fire.yaml" ]; then
+        cti_key="$("$THIS_TMP/yq" e '.cti_key' "$ETC_CROWDSEC/fire.yaml")"
+        if [ -n "$cti_key" ]; then
+            echo "${FG_GREEN}CTI key already configured.${RESET}"
+            return
+        fi
     fi
 
     printf '%s' "Enter your CTI key: "
     read -r answer
 
-    echo "$answer" | install -m 0600 /dev/fd/0 "$ETC_CROWDSEC/cti-key"
+    touch "$ETC_CROWDSEC/fire.yaml"
+    chmod 0600 "$ETC_CROWDSEC/fire.yaml"
+    cti_key="$answer" "$THIS_TMP/yq" e '.cti_key = strenv(cti_key)' --inplace "$ETC_CROWDSEC/fire.yaml"
 }
 
 download_fire_db() {
@@ -364,12 +384,12 @@ download_fire_db() {
             ;;
     esac
 
-    datadir="$("$TMPDIR/yq" e '.config_paths.data_dir' "$ETC_CROWDSEC/config.yaml" | sed 's:/*$::')"
+    datadir="$("$THIS_TMP/yq" e '.config_paths.data_dir' "$ETC_CROWDSEC/config.yaml" | sed 's:/*$::')"
 
     echo "${FG_CYAN}Data directory is set to $datadir.${RESET}"
 
     echo "${FG_CYAN}Downloading $datadir/fire.txt...${RESET}"
-    CROWDSEC_FIRE_CTI_KEY=$(cat "$ETC_CROWDSEC/cti-key") "$TMPDIR/$FIRETOOL_FILE" > "$datadir/fire.txt"
+    "/usr/local/bin/$FIRETOOL_FILE" --config /etc/crowdsec/fire.yaml --output "$datadir/fire.txt"
     echo "${FG_GREEN}done.${RESET}"
 }
 
@@ -408,27 +428,27 @@ configure_scenario() {
 }
 
 generate_cron_job() {
-	cron_file="$TMPDIR/crowdsec-fire-tool.cron"
+    cron_file="$THIS_TMP/crowdsec-fire-tool.cron"
     if [ ! -s "$cron_file" ]; then
         echo "${FG_CYAN}Generating $cron_file...${RESET}"
-		cat <<-EOT > "$cron_file"
-		0 */2 * * * root CTI_API_KEY=\$(cat /etc/crowdsec/cti-key) $TMPDIR/crowdsec-fire-tool > /var/lib/crowdsec/data/fire.txt
-
+        cat <<-EOT > "$cron_file"
+		0 */2 * * * root /usr/local/bin/crowdsec-fire-tool --config /etc/crowdsec/fire.yaml --output /var/lib/crowdsec/data/fire.txt
 		EOT
-	fi
-	if [ ! -f /etc/cron.d/crowdsec-fire-tool ]; then
-		printf '%s' "Do you want to install the cron job? [${FG_GREEN}Y${RESET}/n] "
-		read -r answer
+    fi
+    if [ ! -s /etc/cron.d/crowdsec-fire-tool ]; then
+        printf '%s' "Do you want to install the cron job? [${FG_GREEN}Y${RESET}/n] "
+        read -r answer
 
-		case $answer in
-			n* | N*)
-				return
-				;;
-		esac
+        case $answer in
+            n* | N*)
+                return
+                ;;
+        esac
 
-		echo "${FG_CYAN}Installing $cron_file...${RESET}"
-		install -m 0644 "$cron_file" /etc/cron.d/crowdsec-fire-tool
-	fi
+        echo "${FG_CYAN}Installing $cron_file...${RESET}"
+        install -m 0644 "$cron_file" /etc/cron.d/crowdsec-fire-tool
+        echo "${FG_GREEN}done.${RESET}"
+    fi
 }
 
 confirm_file_configuration() {
@@ -452,6 +472,7 @@ generate_file_configuration() {
     fi
     if [ ! -d "$directory" ]; then
         echo "${ERROR}Directory does not exist.${RESET}"
+        # XXX: Recursion
         generate_file_configuration
     fi
     for file in $(find "$directory" -type f); do
@@ -506,7 +527,7 @@ enroll_instance_to_app() {
 	read -r token
 
 	echo "${FG_CYAN}Enrolling to https://app.crowdsec.net...${RESET}"
-	cscli console enroll $token
+	cscli console enroll "$token"
 
 	echo "${FG_GREEN}Please accept the enrollment on https://app.crowdsec.net${RESET}"
 }
@@ -527,7 +548,7 @@ cold_log_mode() {
         esac
 
         echo "${FG_CYAN}Processing $file...${RESET}"
-        crowdsec -dsn "file://$("$TMPDIR/yq" e '.filename' $file)" -type "$("$TMPDIR/yq" e '.labels.type' $file)" -no-api 2>&1 | grep "performed"
+        crowdsec -dsn "file://$("$THIS_TMP/yq" e '.filename' $file)" -type "$("$THIS_TMP/yq" e '.labels.type' $file)" -no-api 2>&1 | grep "performed"
         continue
     done
 }
@@ -538,6 +559,7 @@ start_crowdsec_service() {
         systemctl start crowdsec
     fi
 }
+
 # ------------------------------------------------------------------------------
 
 set_colors
@@ -563,9 +585,9 @@ esac
 # in case we're running from outside the directory
 cd "$THIS_DIR" || (echo "${ERROR}Cannot cd to $THIS_DIR${RESET}" && exit 1)
 
-if [ ! -d "$TMPDIR" ]; then
-    echo "${FG_CYAN}Creating $TMPDIR...${RESET}"
-    mkdir -p "$TMPDIR"
+if [ ! -d "$THIS_TMP" ]; then
+    echo "${FG_CYAN}Creating $THIS_TMP...${RESET}"
+    mkdir -p "$THIS_TMP"
 fi
 
 case $action in
@@ -576,7 +598,7 @@ case $action in
         ;;
     configure)
         configure_database
-		enroll_instance_to_app
+	enroll_instance_to_app
         update_fire_db
         configure_scenario
         generate_cron_job
