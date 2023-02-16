@@ -431,7 +431,7 @@ generate_cron_job() {
 	fi
 }
 
-generate_file_configuration() {
+confirm_file_configuration() {
     mkdir -p "$ETC_CROWDSEC/acquis.d"
 
     printf '%s' "Do you want to generate the file configurations? [${FG_GREEN}Y${RESET}/n] "
@@ -441,43 +441,54 @@ generate_file_configuration() {
             return
             ;;
     esac
+    generate_file_configuration
+}
+
+generate_file_configuration() {
     printf '%s' "Enter the path to the directory containing the files: "
     read -r directory
+    if [ -z "$directory" ]; then
+        return
+    fi
+    if [ ! -d "$directory" ]; then
+        echo "${ERROR}Directory does not exist.${RESET}"
+        generate_file_configuration
+    fi
     for file in $(find "$directory" -type f); do
         if [ -f "$file" ]; then
             if file --mime-type "$file" | grep -q text; then
-                printf '%s' "Do you want to add $file to the configuration? [${FG_GREEN}Y${RESET}/n] "
+                printf '%s' "Do you want to add $file to the configuration? [y/${FG_RED}N${RESET}] "
                 read -r answer
 
                 case $answer in
-                    n* | N*)
-                        continue
+                    y* | Y*)
+                        printf '%s' "Enter the type of the file (apache2, nginx, etc.): "
+                        read -r answer
+                        if [ -z "$answer" ]; then
+                            echo "${ERROR}Type cannot be empty. skipping file.${RESET}"
+                            continue
+                        fi
+                        fname=${file##*/}
+                        if [ -f "$ETC_CROWDSEC/acquis.d/$fname.yaml" ]; then
+                            echo "${FG_GREEN}$fname already exists.${RESET}"
+                            echo "You can update it manually from $ETC_CROWDSEC/acquis.d/$fname.yaml"
+                            continue
+                        fi
+                        
+                        echo "${FG_CYAN}Adding $file to the configuration...${RESET}"
+
+                        cat <<-EOT > "$ETC_CROWDSEC/acquis.d/$fname.yaml"
+                            filename: $file
+                            labels:
+                            type: $answer
+							EOT
                         ;;
                 esac
-
-                printf '%s' "Enter the type of the file (apache2, nginx, etc.): "
-                read -r answer
-                if [ -z "$answer" ]; then
-                    echo "${ERROR}Type cannot be empty. skipping file.${RESET}"
-                    continue
-                fi
-                fname=${file##*/}
-                if [ -f "$ETC_CROWDSEC/acquis.d/$fname.yaml" ]; then
-                    echo "${FG_GREEN}$fname already exists.${RESET}"
-                    echo "You can update it manually from $ETC_CROWDSEC/acquis.d/$fname.yaml"
-                    continue
-                fi
-                
-                echo "${FG_CYAN}Adding $fname to the configuration...${RESET}"
-
-                cat <<-EOT > "$ETC_CROWDSEC/acquis.d/$fname.yaml"
-                    filename: $file
-                    labels:
-                      type: $answer
-					EOT
+                continue
             fi
         fi
     done
+    generate_file_configuration
 }
 
 enroll_instance_to_app() {
@@ -568,7 +579,7 @@ case $action in
         configure_scenario
         configure_database
         generate_cron_job
-        generate_file_configuration
+        confirm_file_configuration
         ;;
     run)
         case $1 in
