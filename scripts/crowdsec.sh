@@ -563,12 +563,12 @@ case $action in
         install_crowdsec
         ;;
     configure)
+		enroll_instance_to_app
         update_fire_db
         configure_scenario
         configure_database
         generate_cron_job
         generate_file_configuration
-		enroll_instance_to_app
         ;;
     run)
         case $1 in
