@@ -462,16 +462,17 @@ generate_file_configuration() {
 
                 case $answer in
                     y* | Y*)
-                        printf '%s' "Enter the type of the file (apache2, nginx, etc.): "
-                        read -r answer
-                        if [ -z "$answer" ]; then
-                            echo "${ERROR}Type cannot be empty. skipping file.${RESET}"
-                            continue
-                        fi
                         fname=${file##*/}
                         if [ -f "$ETC_CROWDSEC/acquis.d/$fname.yaml" ]; then
                             echo "${FG_GREEN}$fname already exists.${RESET}"
                             echo "You can update it manually from $ETC_CROWDSEC/acquis.d/$fname.yaml"
+                            continue
+                        fi
+                        
+                        printf '%s' "Enter the type of the file (apache2, nginx, etc.): "
+                        read -r answer
+                        if [ -z "$answer" ]; then
+                            echo "${ERROR}Type cannot be empty. skipping file.${RESET}"
                             continue
                         fi
                         
