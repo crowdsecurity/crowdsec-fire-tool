@@ -19,7 +19,7 @@ install -m 600 crowdsec-fire-tool /usr/bin/
 Usage
 
 ```bash
-sudo CTI_API_KEY=XXXXXX crowdsec-fire-tool > /var/lib/crowdsec/data/fire.txt
+sudo CROWDSEC_FIRE_CTI_KEY=XXXXXX crowdsec-fire-tool > /var/lib/crowdsec/data/fire.txt
 ```
 
 Environment

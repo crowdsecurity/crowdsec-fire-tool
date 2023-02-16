@@ -369,7 +369,7 @@ download_fire_db() {
     echo "${FG_CYAN}Data directory is set to $datadir.${RESET}"
 
     echo "${FG_CYAN}Downloading $datadir/fire.txt...${RESET}"
-    CTI_API_KEY=$(cat "$ETC_CROWDSEC/cti-key") "$TMPDIR/$FIRETOOL_FILE" > "$datadir/fire.txt"
+    CROWDSEC_FIRE_CTI_KEY=$(cat "$ETC_CROWDSEC/cti-key") "$TMPDIR/$FIRETOOL_FILE" > "$datadir/fire.txt"
     echo "${FG_GREEN}done.${RESET}"
 }
 
@@ -411,7 +411,7 @@ generate_cron_job() {
     cron_file="$THIS_DIR/crowdsec-fire-tool.cron"
     echo "${FG_CYAN}Generating $cron_file...${RESET}"
     cat <<-EOT > "$cron_file"
-	0 */2 * * * root CTI_API_KEY=\$(cat /etc/crowdsec/cti-key) $TMPDIR/crowdsec-fire-tool > /var/lib/crowdsec/data/fire.txt
+	0 */2 * * * root CROWDSEC_FIRE_CTI_KEY=\$(cat /etc/crowdsec/cti-key) $TMPDIR/crowdsec-fire-tool > /var/lib/crowdsec/data/fire.txt
 	EOT
 
     if [ -s "$cron_file" ]; then
