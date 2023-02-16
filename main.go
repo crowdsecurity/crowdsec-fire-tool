@@ -21,7 +21,9 @@ func intPtr(i int) *int {
 	return &i
 }
 
-func config(k *koanf.Koanf) error {
+func config() (*koanf.Koanf, error) {
+	var k = koanf.New(".")
+
 	var prefix = "CROWDSEC_FIRE_"
 
 	f := flag.NewFlagSet("config", flag.ContinueOnError)
@@ -35,56 +37,86 @@ func config(k *koanf.Koanf) error {
 	f.StringP("output", "o", "", "Output file (- for stdout)")
 
 	if err := f.Parse(os.Args[1:]); err != nil {
-		return fmt.Errorf("error parsing flags: %v", err)
+		return nil, fmt.Errorf("error parsing flags: %v", err)
 	}
 
 	cFiles, _ := f.GetStringSlice("config")
 	for _, c := range cFiles {
 		if err := k.Load(file.Provider(c), yaml.Parser()); err != nil {
-			return fmt.Errorf("error loading file: %v", err)
+			return nil, fmt.Errorf("error loading file: %v", err)
 		}
 	}
 
 	if err := k.Load(env.Provider(prefix, ".", func(s string) string {
 		return strings.ToLower(strings.TrimPrefix(s, prefix))
 	}), nil); err != nil {
-		return fmt.Errorf("error loading env: %v", err)
+		return nil, fmt.Errorf("error loading env: %v", err)
 	}
 
 	if err := k.Load(posflag.Provider(f, ".", k), nil); err != nil {
-		return fmt.Errorf("error loading flags: %v", err)
+		return nil, fmt.Errorf("error loading flags: %v", err)
 	}
 
 	// validate config
 
 	if k.String("cti_key") == "" {
-		return fmt.Errorf("a CTI key is required. Please set CROWDSEC_FIRE_CTI_KEY=<key> or a fire.yml config file with 'cti_key: <key>'")
+		return nil, fmt.Errorf("a CTI key is required (--cti_key). You can also set CROWDSEC_FIRE_CTI_KEY=<key> or a fire.yml config file with 'cti_key: <key>'")
 	}
 
-	return nil
+	if k.String("output") == "" {
+		return nil, fmt.Errorf("an output file is required (--output or -o). For stdout, use '-'")
+	}
+
+	return k, nil
 }
 
-func main() {
-	var k = koanf.New(".")
-
-	if err := config(k); err != nil {
-		log.Fatal(err)
-	}
-
-	cti_key := k.String("cti_key")
+func readFireDB(cti_key string) (string, error) {
+	var ret strings.Builder
 
 	client := cticlient.NewCrowdsecCTIClient(cticlient.WithAPIKey(cti_key))
 	paginator := cticlient.NewFirePaginator(client, cticlient.FireParams{
 		Limit: intPtr(1000),
 	})
 
-	outFile := os.Stdout
+	bar := progressbar.Default(-1, "Fetching CTI data")
+	defer func() {
+		_ = bar.Finish()
+	}()
+	for {
+		items, err := paginator.Next()
+		if err != nil {
+			return "", fmt.Errorf("while fetching CTI data: %v", err)
+		}
+		if items == nil {
+			break
+		}
 
-	output := k.String("output")
-	if output == "" {
-		log.Fatal("An output file is required. Use '-o -' to write to stdout")
+		_ = bar.Add(len(items))
+
+		for _, item := range items {
+			ret.WriteString(item.Ip + "\n")
+		}
 	}
 
+	return ret.String(), nil
+}
+
+func main() {
+	k, err := config()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	outFile := os.Stdout
+
+	cti_key := k.String("cti_key")
+
+	data, err := readFireDB(cti_key)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	output := k.String("output")
 	if output != "-" {
 		f, err := os.Create(output)
 		if err != nil {
@@ -94,21 +126,12 @@ func main() {
 		outFile = f
 	}
 
-	bar := progressbar.Default(-1, "Fetching CTI data")
-	for {
-		items, err := paginator.Next()
-		if err != nil {
-			bar.Finish()
-			log.Fatalf("Error whilst fetching CTI data got %s", err.Error())
-		}
-		if items == nil {
-			break
-		}
+	_, err = outFile.WriteString(data)
+	if err != nil {
+		log.Fatalf("Error whilst writing output file %s", err)
+	}
 
-		bar.Add(len(items))
-
-		for _, item := range items {
-			outFile.WriteString(item.Ip + "\n")
-		}
+	if err = outFile.Sync(); err != nil {
+		log.Fatalf("Error whilst syncing output file %s", err)
 	}
 }
