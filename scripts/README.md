@@ -26,6 +26,18 @@ sudo ./crowdsec.sh configure
 
 The configure option **MUST** run after the install command has completed successfully. The configure command configure crowdsec to download and use the fire data directly within a scenario. 
 
+#### Run
+
+Run takes an argument of what type of subcommand you wish to run. The subcommands are:
+
+##### Coldlog
+
+```
+sudo ./crowdsec.sh run coldlog
+```
+
+This will take the configured logs and run them through crowdsec to generate a coldlog output. This is useful for detecting attacks that have already happened. As crowdsec always starts from the bottom of the log file.
+
 #### Type matrix
 
 type | description
