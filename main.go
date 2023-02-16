@@ -32,6 +32,8 @@ func config(k *koanf.Koanf) error {
 
 	f.StringSlice("config", []string{}, "Config file(s) to use")
 	f.String("cti_key", "", "CTI API Key")
+	f.StringP("output", "o", "", "Output file (- for stdout)")
+
 	if err := f.Parse(os.Args[1:]); err != nil {
 		return fmt.Errorf("error parsing flags: %v", err)
 	}
@@ -76,6 +78,22 @@ func main() {
 		Limit: intPtr(1000),
 	})
 
+	outFile := os.Stdout
+
+	output := k.String("output")
+	if output == "" {
+		log.Fatal("An output file is required. Use '-o -' to write to stdout")
+	}
+
+	if output != "-" {
+		f, err := os.Create(output)
+		if err != nil {
+			log.Fatalf("Error whilst creating output file %s", err)
+		}
+		defer f.Close()
+		outFile = f
+	}
+
 	bar := progressbar.Default(-1, "Fetching CTI data")
 	for {
 		items, err := paginator.Next()
@@ -90,7 +108,7 @@ func main() {
 		bar.Add(len(items))
 
 		for _, item := range items {
-			os.Stdout.WriteString(item.Ip + "\n")
+			outFile.WriteString(item.Ip + "\n")
 		}
 	}
 }
