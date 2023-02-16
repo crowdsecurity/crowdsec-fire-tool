@@ -533,6 +533,20 @@ enroll_instance_to_app() {
 	echo "${FG_GREEN}Please accept the enrollment on https://app.crowdsec.net${RESET}"
 }
 
+install_all_collections() {
+    printf '%s' "Do you want to install all collections? [${FG_GREEN}Y${RESET}/n] "
+    read -r answer
+
+    case $answer in
+        n* | N*)
+            return
+            ;;
+    esac
+
+    echo "${FG_CYAN}Installing all collections...${RESET}"
+    for i in $(cscli collections list -a -oraw | cut -d, -f1); do cscli collections install "$i";done
+}
+
 # ------------------------------------------------------------------------------
 # Run
 # ------------------------------------------------------------------------------
@@ -599,6 +613,7 @@ case $action in
         ;;
     configure)
         configure_database
+        install_all_collections
 	enroll_instance_to_app
         update_fire_db
         configure_scenario
