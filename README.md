@@ -39,4 +39,5 @@ This is the desired output folder
 This is CTI key generated from [console](https://app.crowdsec.net/cti)
 
 `-o | --output`
+
 This is the desired output location
