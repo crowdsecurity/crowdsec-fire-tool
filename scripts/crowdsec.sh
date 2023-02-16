@@ -496,7 +496,7 @@ generate_file_configuration() {
                             echo "${ERROR}Type cannot be empty. skipping file.${RESET}"
                             continue
                         fi
-                        
+
                         echo "${FG_CYAN}Adding $file to the configuration...${RESET}"
 
                         cat <<-EOT > "$ETC_CROWDSEC/acquis.d/$fname.yaml"
@@ -548,7 +548,7 @@ cold_log_mode() {
         esac
 
         echo "${FG_CYAN}Processing $file...${RESET}"
-        crowdsec -dsn "file://$("$THIS_TMP/yq" e '.filename' $file)" -type "$("$THIS_TMP/yq" e '.labels.type' $file)" -no-api 2>&1 | grep "performed"
+        crowdsec -dsn "file://$("$THIS_TMP/yq" e '.filename' "$file")" -type "$("$THIS_TMP/yq" e '.labels.type' "$file")" -no-api 2>&1 | grep "performed"
         continue
     done
 }
