@@ -468,7 +468,7 @@ generate_file_configuration() {
                             echo "You can update it manually from $ETC_CROWDSEC/acquis.d/$fname.yaml"
                             continue
                         fi
-                        
+
                         printf '%s' "Enter the type of the file (apache2, nginx, etc.): "
                         read -r answer
                         if [ -z "$answer" ]; then
@@ -575,10 +575,10 @@ case $action in
         install_crowdsec
         ;;
     configure)
+        configure_database
 		enroll_instance_to_app
         update_fire_db
         configure_scenario
-        configure_database
         generate_cron_job
         confirm_file_configuration
         ;;
