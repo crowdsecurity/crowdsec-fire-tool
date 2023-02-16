@@ -369,7 +369,7 @@ download_fire_db() {
     echo "${FG_CYAN}Data directory is set to $datadir.${RESET}"
 
     echo "${FG_CYAN}Downloading $datadir/fire.txt...${RESET}"
-    CTI_API_KEY=$(cat "$ETC_CROWDSEC/cti-key") "$TMPDIR/$FIRETOOL_FILE" > "$datadir/fire.txt"
+    CROWDSEC_FIRE_CTI_KEY=$(cat "$ETC_CROWDSEC/cti-key") "$TMPDIR/$FIRETOOL_FILE" > "$datadir/fire.txt"
     echo "${FG_GREEN}done.${RESET}"
 }
 
