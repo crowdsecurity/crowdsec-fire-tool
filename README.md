@@ -22,12 +22,21 @@ Usage
 sudo CROWDSEC_FIRE_CTI_KEY=XXXXXX -o /var/lib/crowdsec/data/fire.txt crowdsec-fire-tool
 ```
 
-Environment
+#### Environment
 
-#### CTI_API_KEY
+#### CROWDSEC_FIRE_CTI_KEY
 
 This is CTI key generated from [console](https://app.crowdsec.net/cti)
 
-#### OUTPUT_DIR
+#### CROWDSEC_FIRE_OUTPUT
 
-This is the desired output folder (Once completed there will be a file named `fire.txt` within)
+This is the desired output folder
+
+#### Arguments
+
+`--cti-key`
+
+This is CTI key generated from [console](https://app.crowdsec.net/cti)
+
+`-o | --output`
+This is the desired output location
