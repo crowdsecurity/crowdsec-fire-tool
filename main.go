@@ -11,6 +11,7 @@ import (
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/posflag"
+	isatty "github.com/mattn/go-isatty"
 	"github.com/schollz/progressbar/v3"
 	flag "github.com/spf13/pflag"
 
@@ -70,6 +71,10 @@ func config() (*koanf.Koanf, error) {
 	return k, nil
 }
 
+func showProgress() bool {
+	return isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())
+}
+
 func readFireDB(cti_key string) (string, error) {
 	var ret strings.Builder
 
@@ -78,10 +83,15 @@ func readFireDB(cti_key string) (string, error) {
 		Limit: intPtr(1000),
 	})
 
-	bar := progressbar.Default(-1, "Fetching CTI data")
-	defer func() {
-		_ = bar.Finish()
-	}()
+	var bar *progressbar.ProgressBar
+
+	if showProgress() {
+		bar = progressbar.Default(-1, "Fetching CTI data")
+		defer func() {
+			_ = bar.Finish()
+		}()
+	}
+
 	for {
 		items, err := paginator.Next()
 		if err != nil {
@@ -91,7 +101,9 @@ func readFireDB(cti_key string) (string, error) {
 			break
 		}
 
-		_ = bar.Add(len(items))
+		if bar != nil {
+			_ = bar.Add(len(items))
+		}
 
 		for _, item := range items {
 			ret.WriteString(item.Ip + "\n")
