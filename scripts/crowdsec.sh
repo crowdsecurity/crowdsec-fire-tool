@@ -432,7 +432,7 @@ generate_cron_job() {
     if [ ! -s "$cron_file" ]; then
         echo "${FG_CYAN}Generating $cron_file...${RESET}"
         cat <<-EOT > "$cron_file"
-		0 */4 * * * root /usr/local/bin/crowdsec-fire-tool --config /etc/crowdsec/fire.yaml --output /var/lib/crowdsec/data/fire.txt && /usr/bin/systemctl reload crowdsec
+		0 */4 * * * root /usr/local/bin/crowdsec-fire-tool --config /etc/crowdsec/fire.yaml --output /var/lib/crowdsec/data/fire.txt && systemctl reload crowdsec
 
 		EOT
     fi
