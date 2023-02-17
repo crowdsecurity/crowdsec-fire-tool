@@ -544,7 +544,8 @@ install_all_collections() {
     esac
 
     echo "${FG_CYAN}Installing all collections...${RESET}"
-    for i in $(cscli collections list -a -oraw | cut -d, -f1); do cscli collections install "$i";done
+    #shellcheck disable=SC2046
+    cscli collections install --ignore $(cscli collections list -a -oraw | cut -d, -f1 | grep -v ^name$)
 }
 
 # ------------------------------------------------------------------------------
