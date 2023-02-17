@@ -199,7 +199,7 @@ install_crowdsec_from_repo() {
     echo "${FG_GREEN}Script hash verified.${RESET}"
 
     printf '%s' "Set up the package repository? [${FG_GREEN}Y${RESET}/n] "
-    read -r answer
+    read -r answer < /dev/tty
 
     quit_if_no "$answer"
 
@@ -207,7 +207,7 @@ install_crowdsec_from_repo() {
     bash "$THIS_TMP/$script_name"
 
     printf '%s' "Install CrowdSec now? [${FG_GREEN}Y${RESET}/n] "
-    read -r answer
+    read -r answer < /dev/tty
 
     quit_if_no "$answer"
 
@@ -248,7 +248,7 @@ download_crowdsec_from_github() {
 
 install_crowdsec_from_github() {
     printf '%s' "Install CrowdSec $CROWDSEC_VERSION from the generic Linux release (tar.gz)? [${FG_GREEN}Y${RESET}/n] "
-    read -r answer
+    read -r answer < /dev/tty
 
     quit_if_no "$answer"
 
@@ -261,7 +261,7 @@ install_crowdsec_from_github() {
     tar -xzf "$THIS_TMP/$CROWDSEC_FILE" -C "$THIS_TMP"
 
     printf '%s' "Install CrowdSec now? [${FG_GREEN}Y${RESET}/n] "
-    read -r answer
+    read -r answer < /dev/tty
 
     quit_if_no "$answer"
 
@@ -344,7 +344,7 @@ install_crowdsec() {
     echo_separator
 
     printf '%s' "Do you want to install CrowdSec from the official repository (packagecloud.io)? [${FG_GREEN}Y${RESET}/n] "
-    read -r answer
+    read -r answer < /dev/tty
 
     if [ "$answer" = "n" ] || [ "$answer" = "N" ]; then
         install_crowdsec_from_github
@@ -367,7 +367,7 @@ configure_cti_key() {
     fi
 
     printf '%s' "Enter your CTI key: "
-    read -r answer
+    read -r answer < /dev/tty
 
     touch "$ETC_CROWDSEC/fire.yaml"
     chmod 0600 "$ETC_CROWDSEC/fire.yaml"
@@ -376,7 +376,7 @@ configure_cti_key() {
 
 download_fire_db() {
     printf '%s' "Download or update fire.txt? [${FG_GREEN}Y${RESET}/n] "
-    read -r answer
+    read -r answer < /dev/tty
 
     case $answer in
         n* | N*)
@@ -438,7 +438,7 @@ generate_cron_job() {
     fi
     if [ ! -s /etc/cron.d/crowdsec-fire-tool ]; then
         printf '%s' "Do you want to install the cron job? [${FG_GREEN}Y${RESET}/n] "
-        read -r answer
+        read -r answer < /dev/tty
 
         case $answer in
             n* | N*)
@@ -456,7 +456,7 @@ confirm_file_configuration() {
     mkdir -p "$ETC_CROWDSEC/acquis.d"
 
     printf '%s' "Do you want to generate the file configurations? [${FG_GREEN}Y${RESET}/n] "
-    read -r confirm
+    read -r confirm < /dev/tty
     case $confirm in
         n* | N*)
             return
@@ -474,7 +474,7 @@ add_acquis() {
     fi
 
     printf '%s' "Enter the type of the file (apache2, nginx, etc.): "
-    read -r answer
+    read -r answer < /dev/tty
     if [ -z "$answer" ]; then
         echo "${ERROR}Type cannot be empty. skipping file.${RESET}"
         return
@@ -491,37 +491,34 @@ add_acquis() {
 
 
 generate_file_configuration() {
-    printf '%s' "Enter the path to the directory containing the files: "
-    read -r directory
-    if [ -z "$directory" ]; then
-        return
-    fi
-    if [ ! -d "$directory" ]; then
-        echo "${ERROR}Directory does not exist.${RESET}"
-        # XXX: Recursion
-        generate_file_configuration
-    fi
-    for file in $(find "$directory" -type f); do
-        if [ -f "$file" ]; then
-            if file --mime-type "$file" | grep -q text; then
-                printf '%s' "Do you want to add $file to the configuration? [y/${FG_RED}N${RESET}] "
-                read -r answer
-
-                case $answer in
-                    y* | Y*)
-                        add_acquis "$file"
-                        ;;
-                esac
-                continue
-            fi
+    while true; do
+        printf '%s' "Enter the path to the directory containing the files: "
+        read -r directory < /dev/tty
+        if [ -z "$directory" ]; then
+            return
         fi
+        if [ ! -d "$directory" ]; then
+            echo "${ERROR}Directory does not exist.${RESET}"
+            continue
+        fi
+
+        # seach for text files only, excluding symlinks and empty files
+        find "$directory" -type f -exec grep -Iq . {} \; -print | while IFS= read -r file; do
+            printf '%s' "Do you want to add $file to the configuration? [y/${FG_RED}N${RESET}] "
+            read -r answer </dev/tty
+
+            case $answer in
+                y* | Y*)
+                    add_acquis "$file"
+                    ;;
+            esac
+        done
     done
-    generate_file_configuration
 }
 
 enroll_instance_to_app() {
 	printf '%s' "Do you want to enroll to https://app.crowdsec.net? [${FG_GREEN}Y${RESET}/n] "
-	read -r answer
+	read -r answer < /dev/tty
 
 	case $answer in
 		n* | N*)
@@ -530,7 +527,7 @@ enroll_instance_to_app() {
 	esac
 
 	printf '%s' "Enter your enrollment token: "
-	read -r token
+	read -r token < /dev/tty
 
 	echo "${FG_CYAN}Enrolling to https://app.crowdsec.net...${RESET}"
 	cscli console enroll "$token"
@@ -540,7 +537,7 @@ enroll_instance_to_app() {
 
 install_all_collections() {
     printf '%s' "Do you want to install all collections? [${FG_GREEN}Y${RESET}/n] "
-    read -r answer
+    read -r answer < /dev/tty
 
     case $answer in
         n* | N*)
@@ -558,9 +555,9 @@ install_all_collections() {
 # ------------------------------------------------------------------------------
 
 cold_log_mode() {
-    for file in $(find "$ETC_CROWDSEC/acquis.d" -type f); do
+    find "$ETC_CROWDSEC/acquis.d" -type f | while IFS= read -r file; do
         printf '%s' "Do you want to process $file? [${FG_GREEN}Y${RESET}/n] "
-        read -r answer
+        read -r answer < /dev/tty
 
         case $answer in
             n* | N*)
