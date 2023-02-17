@@ -432,7 +432,7 @@ generate_cron_job() {
     if [ ! -s "$cron_file" ]; then
         echo "${FG_CYAN}Generating $cron_file...${RESET}"
         cat <<-EOT > "$cron_file"
-		0 */4 * * * root /usr/local/bin/crowdsec-fire-tool --config /etc/crowdsec/fire.yaml --output /var/lib/crowdsec/data/fire.txt && /usr/bin/systemctl reload crowdsec
+		0 */4 * * * root /usr/local/bin/crowdsec-fire-tool --config /etc/crowdsec/fire.yaml --output /var/lib/crowdsec/data/fire.txt && systemctl reload crowdsec
 
 		EOT
     fi
@@ -544,7 +544,8 @@ install_all_collections() {
     esac
 
     echo "${FG_CYAN}Installing all collections...${RESET}"
-    for i in $(cscli collections list -a -oraw | cut -d, -f1); do cscli collections install "$i";done
+    #shellcheck disable=SC2046
+    cscli collections install --ignore $(cscli collections list -a -oraw | cut -d, -f1 | grep -v ^name$)
 }
 
 # ------------------------------------------------------------------------------
