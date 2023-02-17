@@ -501,10 +501,10 @@ generate_file_configuration() {
                         echo "${FG_CYAN}Adding $file to the configuration...${RESET}"
 
                         cat <<-EOT > "$ETC_CROWDSEC/acquis.d/$fname.yaml"
-                        filename: $file
-                        labels:
-                          type: $answer
-						EOT
+			filename: $file
+			labels:
+			  type: $answer
+			EOT
                         ;;
                 esac
                 continue
