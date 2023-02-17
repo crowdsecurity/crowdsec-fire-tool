@@ -465,6 +465,31 @@ confirm_file_configuration() {
     generate_file_configuration
 }
 
+add_acquis() {
+    fname="$(basename "$1")"
+    if [ -f "$ETC_CROWDSEC/acquis.d/$fname.yaml" ]; then
+        echo "${FG_GREEN}$fname already exists.${RESET}"
+        echo "You can update it manually from $ETC_CROWDSEC/acquis.d/$fname.yaml"
+        return
+    fi
+
+    printf '%s' "Enter the type of the file (apache2, nginx, etc.): "
+    read -r answer
+    if [ -z "$answer" ]; then
+        echo "${ERROR}Type cannot be empty. skipping file.${RESET}"
+        return
+    fi
+
+    echo "${FG_CYAN}Adding $file to the configuration...${RESET}"
+
+    cat <<-EOT > "$ETC_CROWDSEC/acquis.d/$fname.yaml"
+	filename: $file
+	labels:
+	  type: $answer
+	EOT
+}
+
+
 generate_file_configuration() {
     printf '%s' "Enter the path to the directory containing the files: "
     read -r directory
@@ -484,27 +509,7 @@ generate_file_configuration() {
 
                 case $answer in
                     y* | Y*)
-                        fname=${file##*/}
-                        if [ -f "$ETC_CROWDSEC/acquis.d/$fname.yaml" ]; then
-                            echo "${FG_GREEN}$fname already exists.${RESET}"
-                            echo "You can update it manually from $ETC_CROWDSEC/acquis.d/$fname.yaml"
-                            continue
-                        fi
-
-                        printf '%s' "Enter the type of the file (apache2, nginx, etc.): "
-                        read -r answer
-                        if [ -z "$answer" ]; then
-                            echo "${ERROR}Type cannot be empty. skipping file.${RESET}"
-                            continue
-                        fi
-
-                        echo "${FG_CYAN}Adding $file to the configuration...${RESET}"
-
-                        cat <<-EOT > "$ETC_CROWDSEC/acquis.d/$fname.yaml"
-			filename: $file
-			labels:
-			  type: $answer
-			EOT
+                        add_acquis "$file"
                         ;;
                 esac
                 continue
